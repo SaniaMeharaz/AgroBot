@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AgroBot Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .header {
+            background: #224a2b;
+            padding: 20px;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            position: relative;
+        }
+        .logout {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgb(100, 158, 134);
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .main-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .box {
+            width: 60%;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        }
+        .box h2 {
+            margin: 0;
+            padding: 15px;
+            background: #0d4d2c;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 550px;
+        }
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #cccccc;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .chat-input-form {
+            display: flex;
+            width: 100%;
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .chat-send-button,
+        .chat-image-button {
+            width: 45px;
+            height: 45px;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .chat-image-button {
+            background: #1d6f45;
+            margin-right: 10px;
+        }
+
+        .chat-send-button {
+            background: #0d4d2c;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .user-msg {
+            background: #d1e7ff;
+            padding: 8px 12px;
+            border-radius: 18px 18px 2px 18px;
+            margin: 8px 0;
+            margin-left: auto;
+            max-width: 80%;
+        }
+        .bot-msg {
+            background: #e7ffe7;
+            padding: 8px 12px;
+            border-radius: 18px 18px 18px 2px;
+            margin: 8px 0;
+            margin-right: auto;
+            max-width: 80%;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    Welcome, {{ user }}
+    <a class="logout" href="{{ url_for('logout') }}">Logout</a>
+</div>
+
+<div class="main-container">
+    <div class="box">
+
+        <h2>🤖 AgroBot Assistant</h2>
+
+        <div class="chat-container">
+
+            <div class="chat-box" id="chatBox">
+                <p class="bot-msg">
+                    <b>AgroBot:</b> Hello! I'm your agricultural assistant. How can I help you today?
+                </p>
+            </div>
+
+            <form id="chatForm" class="chat-input-form" onsubmit="event.preventDefault(); sendChat()">
+                <input id="userMessage" class="chat-input" type="text" placeholder="Ask AgroBot...">
+
+                <label class="chat-image-button">
+                    📷
+                    <input type="file" id="chatImage" accept="image/*" style="display:none" onchange="sendImage()">
+                </label>
+
+                <div class="chat-send-button" onclick="sendChat()">></div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+function appendChat(user, bot) {
+    let box = document.getElementById("chatBox");
+
+    if (user) {
+        const userP = document.createElement('p');
+        userP.className = 'user-msg';
+        userP.innerHTML = `<b>You:</b> ${user}`;
+        box.appendChild(userP);
+    }
+
+    if (bot) {
+        const botP = document.createElement('p');
+        botP.className = 'bot-msg';
+        botP.innerHTML = `<b>AgroBot:</b> ${bot.replace(/\n/g, "<br>")}`;
+        box.appendChild(botP);
+    }
+
+    box.scrollTop = box.scrollHeight;
+}
+
+async function sendChat() {
+    const input = document.getElementById('userMessage');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    // Show only ONE user message
+    appendChat(msg, null);
+
+    input.value = "";
+
+    // Show only ONE bot thinking message
+    const thinking = document.createElement('p');
+    thinking.className = 'bot-msg';
+    thinking.id = "thinkingMsg";
+    thinking.innerHTML = `<b>AgroBot:</b> Thinking...`;
+    document.getElementById("chatBox").appendChild(thinking);
+
+    const response = await fetch('/chatbot', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+    });
+
+    const data = await response.json();
+
+    // Remove thinking message ONLY
+    document.getElementById("thinkingMsg").remove();
+
+    appendChat(null, data.reply);
+}
+
+async function sendImage() {
+
+    const fileInput = document.getElementById("chatImage");
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Show only ONE user message for image
+    appendChat("[Image]", null);
+
+    // Show only ONE "Processing..."
+    const proc = document.createElement('p');
+    proc.className = 'bot-msg';
+    proc.id = 'processMsg';
+    proc.innerHTML = `<b>AgroBot:</b> Processing image...`;
+    document.getElementById("chatBox").appendChild(proc);
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/dashboard", {
+        method: "POST",
+        body: formData,
+        headers: { "X-Chat-Image": "true" }
+    });
+
+    const data = await response.json();
+
+    // Remove processing message
+    document.getElementById("processMsg").remove();
+
+    const pred = data.prediction;
+
+    // Now call chatbot with image prediction
+    const api = await fetch("/chatbot", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ image_prediction: pred })
+    });
+
+    const result = await api.json();
+
+    appendChat(null, result.reply);
+
+    fileInput.value = "";
+}
+
+</script>
+s
+
+</body>
+</html>
