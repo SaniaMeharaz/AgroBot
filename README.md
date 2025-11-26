@@ -57,11 +57,11 @@ http://127.0.0.1:5000/
 
 🤖 Features
 
-✔ Plant disease classification
-✔ Chatbot-like text query assistant
-✔ Real-time predictions
-✔ Easy-to-use minimal interface
-✔ Works offline
-✔ MIT Licensed
-✔ Beginner-friendly & college-project suitable
+1.Plant disease classification
+2.Chatbot-like text query assistant
+3.Real-time predictions
+4.Easy-to-use minimal interface
+5.Works offline
+6.MIT Licensed
+7.Beginner-friendly & college-project suitable
 
