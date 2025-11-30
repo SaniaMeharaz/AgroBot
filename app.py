@@ -5,17 +5,17 @@ import numpy as np
 import cv2
 from nlp_db import SYMPTOM_DB, check_symptom
 from googletrans import Translator
-from langdetect import detect
+# from langdetect import detect # No longer needed
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
 translator = Translator()
 
+# Define the English initial greeting
+INITIAL_GREETING_EN = "Hello! I'm your agricultural assistant. How can I help you today?"
 
-# ------------------------------------------------------------
 # LOAD MODEL
-# ------------------------------------------------------------
 try:
     model = tf.keras.models.load_model("plant_model.h5")
     print("✔ Model loaded successfully")
@@ -23,24 +23,17 @@ except Exception as e:
     print("Error loading model:", e)
     model = None
 
-
-# ------------------------------------------------------------
 # CLASS NAMES
-# ------------------------------------------------------------
 dataset_folder = "dataset"
 class_names = sorted([
     f for f in os.listdir(dataset_folder)
     if os.path.isdir(os.path.join(dataset_folder, f))
 ]) if os.path.isdir(dataset_folder) else []
 
-
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-
-# ------------------------------------------------------------
 # IMAGE PREDICTION FUNCTION
-# ------------------------------------------------------------
 def predict_image(img_path):
     try:
         img = cv2.imread(img_path)
@@ -55,10 +48,23 @@ def predict_image(img_path):
     except:
         return "Prediction Failed"
 
+# --- NEW API ENDPOINT FOR DYNAMIC GREETING ---
+@app.route("/translate_greeting", methods=["POST"])
+def translate_greeting():
+    data = request.get_json(force=True)
+    lang_code = data.get("language", "en")
+    
+    try:
+        translated_greeting = translator.translate(INITIAL_GREETING_EN, dest=lang_code).text
+    except Exception as e:
+        print(f"Greeting translation error: {e}")
+        translated_greeting = INITIAL_GREETING_EN # Fallback to English
+        
+    return jsonify({"greeting": translated_greeting})
+# --- END NEW API ENDPOINT ---
 
-# ------------------------------------------------------------
+
 # CHATBOT API (MULTI-LANGUAGE)
-# ------------------------------------------------------------
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
     data = request.get_json(force=True)
@@ -67,18 +73,15 @@ def chatbot():
 
     reply_parts = []
 
-    # Detect language
-    try:
-        user_lang = detect(user_msg_original)
-    except:
-        user_lang = "en"
-
-    # ------------------------------------------------------------
-    # 1️⃣ TRANSLATE USER MESSAGE TO ENGLISH
-    # ------------------------------------------------------------
+    
+    user_lang = data.get("language", "en") 
+    
+    
+    
     if user_msg_original:
         try:
-            translated_to_en = translator.translate(user_msg_original, dest="en").text.lower()
+            
+            translated_to_en = translator.translate(user_msg_original, dest="en", src=user_lang).text.lower()
         except:
             translated_to_en = user_msg_original.lower()
     else:
@@ -86,9 +89,9 @@ def chatbot():
 
     user_msg = translated_to_en
 
-    # ------------------------------------------------------------
+    
     # PROCESSING LOGIC (ALL NLP IN ENGLISH)
-    # ------------------------------------------------------------
+    
 
     # BOTH IMAGE + TEXT
     if image_prediction and user_msg:
@@ -139,25 +142,25 @@ def chatbot():
     else:
         reply_parts.append("I couldn't understand. Please type symptoms or upload a plant leaf image.")
 
-    # ------------------------------------------------------------
-    # 2️⃣ COMBINE REPLY IN ENGLISH
-    # ------------------------------------------------------------
+    
+    # 3️⃣ COMBINE REPLY IN ENGLISH
+    
     final_reply_en = "\n\n".join(reply_parts)
 
-    # ------------------------------------------------------------
-    # 3️⃣ TRANSLATE BOT RESPONSE BACK TO USER LANGUAGE
-    # ------------------------------------------------------------
+    
+    # 4️⃣ TRANSLATE BOT RESPONSE BACK TO USER'S SELECTED LANGUAGE
+    
     try:
+        # Use the explicitly provided user_lang code for the destination
         final_reply_translated = translator.translate(final_reply_en, dest=user_lang).text
-    except:
+    except Exception as e:
+        print(f"Translation error: {e}")
         final_reply_translated = final_reply_en
 
     return jsonify({"reply": final_reply_translated})
 
 
-# ------------------------------------------------------------
 # DASHBOARD
-# ------------------------------------------------------------
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
@@ -189,10 +192,7 @@ def dashboard():
         result=result
     )
 
-
-# ------------------------------------------------------------
 # LOGIN, HOME, LOGOUT
-# ------------------------------------------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
