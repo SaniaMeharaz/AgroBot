@@ -1,67 +1,160 @@
-🌱 AgroBot – Intelligent Plant Disease Detection System (AI + CNN + NLP)
+🌱 AgroBot – Intelligent Multilingual Plant Disease Detection System (AI + CNN + NLP)
 
-A smart agricultural assistant that detects plant diseases from images using Deep Learning (CNN) and answers user queries using an NLP-powered chatbot.
+AgroBot is an AI-powered agricultural assistant that combines Deep Learning (CNN) for image-based plant disease classification and an NLP chatbot for symptom-based text queries.
+Now upgraded with multilanguage support, allowing users to ask questions in any language (Telugu, Hindi, Tamil, English, etc.).
 
 🚀 Overview
 
-AgroBot is a complete AI system built using:
+AgroBot is a complete intelligent system built with:
 
-🧠 CNN Model (TensorFlow/Keras) for image-based disease detection
+🧠 1. CNN Model (TensorFlow/Keras)
 
-💬 NLP Engine for symptom-based text queries
+Detects plant leaf diseases from uploaded images.
 
-🌐 Flask Web App for user interaction
+💬 2. NLP-based Chatbot
 
-🖼️ Image Upload to analyze plant leaves
+Understands user messages like:
 
-📄 MIT Licensed for open-source usage
+“My potato has brown spots”
 
-This project helps farmers and students quickly identify plant diseases and receive treatment recommendations.
+“నా బెండకాయ ఆకు పసుపు రంగులోకి మారుతోంది”
+
+“मेरे पत्तों पर काले धब्बे हैं”
+
+🌐 3. Flask Web Application
+
+User-friendly interface with:
+
+Login page
+
+Dashboard
+
+Chat system
+
+Image prediction box
+
+🌏 4. Multilanguage Support
+
+Auto-detects language → translates → processes → responds back in user's lang.
 
 🖼️ Demo Workflow
 
 1️⃣ Upload an image of a plant leaf
 2️⃣ CNN model predicts the disease
-3️⃣ NLP system handles text-based queries like:
-“My potato has brown spots”
-4️⃣ Web UI displays:
-✔ Detected disease
-✔ Causes
+3️⃣ NLP chatbot handles user text queries
+4️⃣ Dashboard displays:
+
+✔ Detected Disease
 ✔ Symptoms
+✔ Causes
 ✔ Treatment
 ✔ Prevention
-✔ Possible alternative diseases
+✔ Possible Alternative Diseases
 
 🛠️ Tech Stack
-Component	Technology
-Frontend	HTML, CSS, Bootstrap
-Backend	Flask (Python)
-AI Model	TensorFlow, Keras
-NLP	Custom symptom-disease database
-Storage	Local file storage
-Deployment	GitHub / PythonAnywhere / Render
+Component-->Technology
+Frontend-->HTML, CSS, Bootstrap
+Backend-->Flask
+AI Model-->CNN (TensorFlow, Keras)
+NLP Engine-->Custom Symptom DB + Googletrans
+Multilanguage-->langdetect, googletrans
+Storage	Local uploads folder
+Deployment	GitHub Pages, PythonAnywhere, Render
+🧩 Key Features
+1. Plant Disease Classification (CNN)
 
+Real-time prediction from leaf images.
 
-⚙️ How to Run
-Step 1 — Install Dependencies
+2. NLP Chatbot
+
+Understands symptoms and replies with:
+
+Disease
+
+Cause
+
+Treatment
+
+Prevention
+
+Possible diseases
+
+3. Multilanguage Chat
+
+Supports any language:
+
+Hindi
+
+Telugu
+
+Tamil
+
+Malayalam
+
+English
+
+Kannada
+
+Bengali
+…and more.
+
+4. Login System
+
+Simple username + password authentication.
+
+Free and open-source.
+
+📁 Project Structure
+AgroBot/
+│── app.py
+│── nlp_db.py
+│── plant_model.h5
+│── requirements.txt
+│── static/
+│     └── uploads/
+│── templates/
+│     ├── index.html
+│     ├── login.html
+│     └── dashboard.html
+
+⚙️ How to Run the Project
+Step 1 — Install dependencies
 pip install -r requirements.txt
 
-
-(If you want, I can create this file for you.)
-
-Step 2 — Run the Flask App
+Step 2 — Run the Flask app
 python app.py
 
-Step 3 — Open in Browser
+Step 3 — Open your browser
 http://127.0.0.1:5000/
 
-🤖 Features
+📦 requirements.txt 
 
-1.Plant disease classification
-2.Chatbot-like text query assistant
-3.Real-time predictions
-4.Easy-to-use minimal interface
-5.Works offline
-6.MIT Licensed
-7.Beginner-friendly & college-project suitable
+If you want, I will create and upload the exact requirements file based on your final code.
 
+📄 MIT License
+
+This project is released under the MIT License — completely free to use, modify, and publish.
+
+🌟 Why AgroBot?
+
+Helps farmers detect diseases quickly
+
+Reduces crop loss
+
+Easy for students to understand
+
+Simple yet powerful AI project
+
+Perfect for final year projects, hackathons, and portfolios
+
+🧭 Future Enhancements (Simple & Unique)
+
+Mobile App version
+
+Voice-enabled chatbot
+
+Weather-based disease prediction
+
+WhatsApp bot integration
+
+Live camera disease detection
