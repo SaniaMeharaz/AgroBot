@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>AgroBot Dashboard</title>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,14 +45,34 @@
             border-radius: 10px;
             box-shadow: 0 0 12px rgba(0,0,0,0.1);
         }
-        .box h2 {
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin: 0;
             padding: 15px;
             background: #0d4d2c;
             color: white;
-            text-align: center;
-            font-weight: bold;
             border-radius: 10px 10px 0 0;
+        }
+
+        .box h2 {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            color: white;
+            text-align: left;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .language-selector {
+            width: 150px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            color: #333;
         }
 
         .chat-container {
@@ -62,7 +84,7 @@
             flex-grow: 1;
             overflow-y: auto;
             border: 1px solid #cccccc;
-            padding: 10px;
+            padding: 0;
             border-radius: 6px;
             margin-bottom: 10px;
         }
@@ -108,6 +130,10 @@
             font-weight: bold;
         }
 
+        .chat-image-button i {
+            color: white;
+        }
+
         .user-msg {
             background: #d1e7ff;
             padding: 8px 12px;
@@ -115,6 +141,7 @@
             margin: 8px 0;
             margin-left: auto;
             max-width: 80%;
+            margin-right: 10px;
         }
         .bot-msg {
             background: #e7ffe7;
@@ -124,6 +151,7 @@
             margin-right: auto;
             max-width: 80%;
             white-space: pre-wrap;
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -138,21 +166,24 @@
 <div class="main-container">
     <div class="box">
 
-        <h2>🤖 AgroBot Assistant</h2>
+        <div class="header-content">
+            <h2>🤖 AgroBot</h2>
+
+            <select id="languageSelector" class="language-selector" onchange="changeLanguage(this.value)">
+            </select>
+        </div>
 
         <div class="chat-container">
 
             <div class="chat-box" id="chatBox">
-                <p class="bot-msg">
-                    <b>AgroBot:</b> Hello! I'm your agricultural assistant. How can I help you today?
-                </p>
+                <p class="bot-msg" id="greetingMsg">Hello! I'm your smart agricultural assistant, here to help you diagnose plant problems,understand symptoms, and get the best solutions for keeping your crops healthy.How can I support you today?</p>
             </div>
 
             <form id="chatForm" class="chat-input-form" onsubmit="event.preventDefault(); sendChat()">
                 <input id="userMessage" class="chat-input" type="text" placeholder="Ask AgroBot...">
 
                 <label class="chat-image-button">
-                    📷
+                    <i class="fa-solid fa-paperclip"></i>
                     <input type="file" id="chatImage" accept="image/*" style="display:none" onchange="sendImage()">
                 </label>
 
@@ -163,108 +194,196 @@
     </div>
 </div>
 
-
 <script>
 
-function appendChat(user, bot) {
-    let box = document.getElementById("chatBox");
+// AVAILABLE LANGUAGES
+const LANGUAGES = [
+    { code: "en", name: "English" },
+    { code: "hi", name: "Hindi (हिंदी)" },
+    { code: "bn", name: "Bengali (বাংলা)" },
+    { code: "mr", name: "Marathi (मराठी)" },
+    { code: "te", name: "Telugu (తెలుగు)" },
+    { code: "ta", name: "Tamil (தமிழ்)" },
+    { code: "gu", name: "Gujarati (ગુજરાતી)" },
+    { code: "ur", name: "Urdu (اردو)" },
+    { code: "kn", name: "Kannada (ಕನ್ನಡ)" },
+    { code: "or", name: "Odia (ଓଡ଼ିଆ)" },
+    { code: "ml", name: "Malayalam (മലയാളം)" },
+    { code: "pa", name: "Punjabi (ਪੰਜਾਬੀ)" },
+    { code: "as", name: "Assamese (অসমীয়া)" },
+    { code: "mai", name: "Maithili (मैथिली)" },
+    { code: "sat", name: "Santali (ᱥᱟᱱᱛᱟᱲᱤ)" },
+    { code: "ks", name: "Kashmiri (کٲشُر)" },
+    { code: "ne", name: "Nepali (नेपाली)" },
+    { code: "sd", name: "Sindhi (سنڌي)" },
+    { code: "doi", name: "Dogri (डोगरी)" },
+    { code: "kok", name: "Konkani (कोंकणी)" },
+    { code: "mni", name: "Meitei (ꯃꯤꯇꯩ)" },
+    { code: "ar", name: "Arabic (العربية)" },
+    { code: "brx", name: "Bodo (बर')" },
+    { code: "sa", name: "Sanskrit (संस्कृतम्)" }
+];
 
-    if (user) {
-        const userP = document.createElement('p');
-        userP.className = 'user-msg';
-        userP.innerHTML = `<b>You:</b> ${user}`;
-        box.appendChild(userP);
-    }
+// TRANSLATED GREETINGS
+const TRANSLATIONS = {
+    en: "Hello! I'm your smart agricultural assistant, here to help you diagnose plant problems, understand symptoms, and get the best solutions for keeping your crops healthy. How can I support you today?",
 
-    if (bot) {
-        const botP = document.createElement('p');
-        botP.className = 'bot-msg';
-        botP.innerHTML = `<b>AgroBot:</b> ${bot.replace(/\n/g, "<br>")}`;
-        box.appendChild(botP);
-    }
+    hi: "नमस्ते! मैं आपका स्मार्ट कृषि सहायक हूँ, जो पौधों की समस्याओं का पता लगाने, लक्षण समझने और आपकी फसलों को स्वस्थ रखने के लिए सर्वोत्तम समाधान देता हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
 
-    box.scrollTop = box.scrollHeight;
+    bn: "নমস্কার! আমি আপনার স্মার্ট কৃষি সহায়ক, গাছের সমস্যা নির্ণয় করতে, লক্ষণ বুঝতে এবং ফসলকে সুস্থ রাখতে সহায়তা করি। আজ আপনাকে কীভাবে সাহায্য করতে পারি?",
+
+    mr: "नमस्कार! मी तुमचा स्मार्ट कृषी सहाय्यक आहे, पिकांच्या समस्या ओळखण्यात आणि सर्वोत्तम उपाय देण्यात मदत करतो. मी तुम्हाला कशी मदत करू शकतो?",
+
+    te: "నమస్తే! నేను మీ స్మార్ట్ వ్యవసాయ సహాయకుడిని. పంట సమస్యలను గుర్తించి పరిష్కారాలను సూచిస్తాను. నేను ఎలా సహాయం చేయగలను?",
+
+    ta: "வணக்கம்! நான் உங்கள் ஸ்மார்ட் வேளாண்மை உதவியாளர். நான் எப்படி உதவலாம்?",
+
+    gu: "નમસ્તે! હું તમારો સ્માર્ટ કૃષિ સહાયક છું. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
+
+    ur: "سلام! میں آپ کا سمارٹ زرعی معاون ہوں۔ میں آپ کی کیسے مدد کرسکتا ہوں؟",
+
+    kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ಕೃಷಿ ಸಹಾಯಕನು. ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+
+    or: "ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କ ସ୍ମାର୍ଟ କୃଷି ସହାୟକ। ମୁଁ ଆଜି କିପରି ଆପଣଙ୍କୁ ସହଯୋଗ କରିପାରେ?",
+
+    ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ സ്മാർട്ട് കാർഷിക സഹായി. ഞാൻ എങ്ങനെ സഹായിക്കാം?",
+
+    pa: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ ਸਮਾਰਟ ਖੇਤੀ-ਬਾੜੀ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਤੁਹਾਡੀ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?",
+
+    as: "নমস্কাৰ! মই আপোনাৰ স্মাৰ্ট কৃষি সহায়ক। আপোনাক কেনেকৈ সহায় কৰিব পাৰোঁ?",
+
+    mai: "नमस्कार! हम अहाँक स्मार्ट कृषि सहयोगी छी। अहाँक की मदद चाही?",
+
+    sat: "ᱧᱩᱛ ᱟᱞ! ᱟᱢ ᱟᱫᱮ ᱥᱢᱟᱨᱛ ᱠᱨᱤᱥᱤ ᱥᱟᱭᱟᱜ ᱠᱚ ᱵᱚᱞ ᱠᱟᱱ ᱢᱮ। ᱟᱢ ᱛᱮ ᱦᱟᱞᱛᱮ?",
+
+    ks: "آداب! مَیں تُہندٕ سمارٹ زرعی معاون آہِم۔ آج مَیں تُہندٕ کَس طرح مدد کرٕم؟",
+
+    ne: "नमस्ते! म तपाईंको स्मार्ट कृषि सहायक हुँ। म तपाईंलाई कसरी सहायता गर्न सक्छु?",
+
+    sd: "سلام! مان توهانجو سمارٽ زرعي مددگار آهيان۔ مان توهانجي ڪيئن مدد ڪري سگھان ٿو؟",
+
+    doi: "नमस्कार! मै तुहाड़ी स्मार्ट कृषि सहायकी हां। मै तुहाड़ी केते मदद कर सकदा हां?",
+
+    kok: "नमस्कार! हांव तुमचो स्मार्ट कृषि सहाय्यक। हांव तुमका कशें मदत करूंग?",
+
+    mni: "ꯍꯣꯌꯥꯎ! ꯑꯣꯁꯤ ꯑꯩꯔꯣꯀꯁꯤ ꯁꯃꯥꯔꯠ ꯀ꯭ꯔꯤꯁꯤ ꯁꯥꯌꯥꯡ ꯍꯧꯗꯣꯛꯄꯤ। ꯑꯩꯍꯧꯗꯣꯛ ꯇꯧꯔꯣ?",
+
+    ar: "مرحباً! أنا مساعدك الزراعي الذكي. كيف يمكنني مساعدتك اليوم؟",
+
+    brx: "जहर! आं जों नोंथांखौ फदांनोथि गोआनि स्मार्ट फासल सहायक।",
+
+    sa: "नमस्कार! अहं भवतः स्मार्ट कृषि-सहायकः अस्मि। कथं भवतः सहायां करॊमि?"
+};
+
+
+// POPULATE DROPDOWN
+document.addEventListener("DOMContentLoaded", () => {
+    const selector = document.getElementById("languageSelector");
+
+    LANGUAGES.forEach(lang => {
+        const option = document.createElement("option");
+        option.value = lang.code;
+        option.textContent = lang.name;
+
+        if (lang.code === "en") option.selected = true;
+
+        selector.appendChild(option);
+    });
+});
+
+
+// CHANGE GREETING ON LANGUAGE SWITCH
+function changeLanguage(selectedLang) {
+    document.getElementById("chatBox").innerHTML =
+        `<p class="bot-msg">${TRANSLATIONS[selectedLang]}</p>`;
 }
 
+
+
+// CHAT SEND FUNCTION
 async function sendChat() {
-    const input = document.getElementById('userMessage');
+    const input = document.getElementById("userMessage");
     const msg = input.value.trim();
     if (!msg) return;
 
-    // Show only ONE user message
     appendChat(msg, null);
-
     input.value = "";
 
-    // Show only ONE bot thinking message
-    const thinking = document.createElement('p');
-    thinking.className = 'bot-msg';
-    thinking.id = "thinkingMsg";
-    thinking.innerHTML = `<b>AgroBot:</b> Thinking...`;
+    const thinking = document.createElement("p");
+    thinking.className = "bot-msg";
+    thinking.id = "thinking";
+    thinking.innerHTML = "...";
     document.getElementById("chatBox").appendChild(thinking);
 
-    const response = await fetch('/chatbot', {
+    const lang = document.getElementById("languageSelector").value;
+
+    const response = await fetch("/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg })
+        body: JSON.stringify({ message: msg, language: lang })
     });
 
     const data = await response.json();
-
-    // Remove thinking message ONLY
-    document.getElementById("thinkingMsg").remove();
+    document.getElementById("thinking").remove();
 
     appendChat(null, data.reply);
 }
 
-async function sendImage() {
 
-    const fileInput = document.getElementById("chatImage");
-    const file = fileInput.files[0];
+
+// IMAGE SEND FUNCTION
+async function sendImage() {
+    const file = document.getElementById("chatImage").files[0];
     if (!file) return;
 
-    // Show only ONE user message for image
-    appendChat("[Image]", null);
+    appendChat("[Image Uploaded]", null);
 
-    // Show only ONE "Processing..."
-    const proc = document.createElement('p');
-    proc.className = 'bot-msg';
-    proc.id = 'processMsg';
-    proc.innerHTML = `<b>AgroBot:</b> Processing image...`;
+    const proc = document.createElement("p");
+    proc.className = "bot-msg";
+    proc.id = "processing";
+    proc.innerHTML = "...";
     document.getElementById("chatBox").appendChild(proc);
 
     let formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/dashboard", {
+    const imgRes = await fetch("/dashboard", {
         method: "POST",
         body: formData,
         headers: { "X-Chat-Image": "true" }
     });
 
-    const data = await response.json();
+    const imgData = await imgRes.json();
+    document.getElementById("processing").remove();
 
-    // Remove processing message
-    document.getElementById("processMsg").remove();
+    const lang = document.getElementById("languageSelector").value;
 
-    const pred = data.prediction;
-
-    // Now call chatbot with image prediction
-    const api = await fetch("/chatbot", {
+    const res = await fetch("/chatbot", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ image_prediction: pred })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_prediction: imgData.prediction, language: lang })
     });
 
-    const result = await api.json();
+    const final = await res.json();
+    appendChat(null, final.reply);
+}
 
-    appendChat(null, result.reply);
 
-    fileInput.value = "";
+// APPEND TO CHAT BOX
+function appendChat(user, bot) {
+    let box = document.getElementById("chatBox");
+
+    if (user) {
+        box.innerHTML += `<p class="user-msg">${user}</p>`;
+    }
+    if (bot) {
+        box.innerHTML += `<p class="bot-msg">${bot.replace(/\n/g, "<br>")}</p>`;
+    }
+
+    box.scrollTop = box.scrollHeight;
 }
 
 </script>
-s
 
 </body>
 </html>
