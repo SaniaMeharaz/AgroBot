@@ -1,4 +1,4 @@
-🌱 AgroBot – Intelligent Plant Disease Detection System (AI + CNN + NLP)
+🌱 AgroBot 
 
 AgroBot is a simple and smart system that detects plant diseases using Deep Learning (CNN) and answers user questions using an NLP chatbot.
 It now supports multilanguage chat, so users can ask doubts in any language (Telugu, Hindi, Tamil, English, etc.).
