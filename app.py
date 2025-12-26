@@ -1,39 +1,47 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import os
+import os, sqlite3
 import tensorflow as tf
 import numpy as np
 import cv2
-from nlp_db import SYMPTOM_DB, check_symptom
 from googletrans import Translator
-# from langdetect import detect # No longer needed
+from nlp_db import SYMPTOM_DB, check_symptom
 
+# ================== APP CONFIG ==================
 app = Flask(__name__)
 app.secret_key = "secret123"
 
 translator = Translator()
 
-# Define the English initial greeting
-INITIAL_GREETING_EN = "Hello! I'm your agricultural assistant. How can I help you today?"
-
-# LOAD MODEL
-try:
-    model = tf.keras.models.load_model("plant_model.h5")
-    print("✔ Model loaded successfully")
-except Exception as e:
-    print("Error loading model:", e)
-    model = None
-
-# CLASS NAMES
-dataset_folder = "dataset"
-class_names = sorted([
-    f for f in os.listdir(dataset_folder)
-    if os.path.isdir(os.path.join(dataset_folder, f))
-]) if os.path.isdir(dataset_folder) else []
-
+DATABASE = "database.db"
 UPLOAD_FOLDER = "static/uploads"
+DATASET_FOLDER = "dataset"
+MODEL_PATH = "plant_model.h5"
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# IMAGE PREDICTION FUNCTION
+INITIAL_GREETING_EN = "Hello! I'm your agricultural assistant. How can I help you today?"
+
+# ================== DATABASE ==================
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# ================== LOAD MODEL ==================
+try:
+    model = tf.keras.models.load_model(MODEL_PATH)
+    print("✔ Model loaded successfully")
+except Exception as e:
+    print("❌ Model load failed:", e)
+    model = None
+
+# ================== CLASS NAMES ==================
+class_names = sorted([
+    d for d in os.listdir(DATASET_FOLDER)
+    if os.path.isdir(os.path.join(DATASET_FOLDER, d))
+]) if os.path.isdir(DATASET_FOLDER) else []
+
+# ================== IMAGE PREDICTION ==================
 def predict_image(img_path):
     try:
         img = cv2.imread(img_path)
@@ -43,124 +51,105 @@ def predict_image(img_path):
         img = np.expand_dims(img, axis=0)
 
         pred = model.predict(img)
-        cls = np.argmax(pred)
-        return class_names[cls]
+        return class_names[np.argmax(pred)]
     except:
         return "Prediction Failed"
 
-# --- NEW API ENDPOINT FOR DYNAMIC GREETING ---
+# ================== GREETING TRANSLATION API ==================
 @app.route("/translate_greeting", methods=["POST"])
 def translate_greeting():
     data = request.get_json(force=True)
-    lang_code = data.get("language", "en")
-    
+    lang = data.get("language", "en")
     try:
-        translated_greeting = translator.translate(INITIAL_GREETING_EN, dest=lang_code).text
-    except Exception as e:
-        print(f"Greeting translation error: {e}")
-        translated_greeting = INITIAL_GREETING_EN # Fallback to English
-        
-    return jsonify({"greeting": translated_greeting})
-# --- END NEW API ENDPOINT ---
+        text = translator.translate(INITIAL_GREETING_EN, dest=lang).text
+    except:
+        text = INITIAL_GREETING_EN
+    return jsonify({"greeting": text})
 
-
-# CHATBOT API (MULTI-LANGUAGE)
+# ================== CHATBOT API ==================
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
     data = request.get_json(force=True)
-    user_msg_original = (data.get("message") or "").strip()
+
+    user_msg = (data.get("message") or "").strip()
     image_prediction = data.get("image_prediction")
+    user_lang = data.get("language", "en")
 
     reply_parts = []
 
-    
-    user_lang = data.get("language", "en") 
-    
-    
-    
-    if user_msg_original:
+    # Translate user message → English
+    if user_msg:
         try:
-            
-            translated_to_en = translator.translate(user_msg_original, dest="en", src=user_lang).text.lower()
+            user_msg_en = translator.translate(user_msg, dest="en", src=user_lang).text.lower()
         except:
-            translated_to_en = user_msg_original.lower()
+            user_msg_en = user_msg.lower()
     else:
-        translated_to_en = ""
+        user_msg_en = ""
 
-    user_msg = translated_to_en
+    # ===== IMAGE + TEXT =====
+    if image_prediction and user_msg_en:
+        reply_parts.append(f"🖼 Image Result: {image_prediction}")
 
-    
-    # PROCESSING LOGIC (ALL NLP IN ENGLISH)
-    
-
-    # BOTH IMAGE + TEXT
-    if image_prediction and user_msg:
-        nlp_results = check_symptom(user_msg)
-        reply_parts.append(f"🖼 Image Result: {image_prediction}\n")
-
-        for result in nlp_results:
-            for symptom, info in result.items():
+        results = check_symptom(user_msg_en)
+        for r in results:
+            for symptom, info in r.items():
                 reply_parts.append(
-                    f"🌿 Symptom from Text: {symptom}\n\n"
-                    f"🦠 Possible Diseases: {', '.join(info.get('diseases', ['Not specified']))}\n\n"
-                    f"🧬 Cause: {info.get('cause', 'Not specified')}\n\n"
-                    f"💊 Treatment: {info.get('treatment', 'Not specified')}\n\n"
-                    f"🛡 Prevention: {info.get('prevention', 'Not specified')}"
+                    f"🌿 Symptom: {symptom}\n"
+                    f"🦠 Diseases: {', '.join(info.get('diseases', []))}\n"
+                    f"🧬 Cause: {info.get('cause')}\n"
+                    f"💊 Treatment: {info.get('treatment')}\n"
+                    f"🛡 Prevention: {info.get('prevention')}"
                 )
 
-    # ONLY TEXT
-    elif user_msg:
-        nlp_results = check_symptom(user_msg)
-        for result in nlp_results:
-            for symptom, info in result.items():
+    # ===== ONLY TEXT =====
+    elif user_msg_en:
+        results = check_symptom(user_msg_en)
+        for r in results:
+            for symptom, info in r.items():
                 reply_parts.append(
-                    f"🌿 Symptom: {symptom}\n\n"
-                    f"🦠 Possible Diseases: {', '.join(info.get('diseases', ['Not specified']))}\n\n"
-                    f"🧬 Cause: {info.get('cause', 'Not specified')}\n\n"
-                    f"💊 Treatment: {info.get('treatment', 'Not specified')}\n\n"
-                    f"🛡 Prevention: {info.get('prevention', 'Not specified')}"
+                    f"🌿 Symptom: {symptom}\n"
+                    f"🦠 Diseases: {', '.join(info.get('diseases', []))}\n"
+                    f"🧬 Cause: {info.get('cause')}\n"
+                    f"💊 Treatment: {info.get('treatment')}\n"
+                    f"🛡 Prevention: {info.get('prevention')}"
                 )
 
-    # ONLY IMAGE
+    # ===== ONLY IMAGE =====
     elif image_prediction:
-        disease_data = SYMPTOM_DB.get(image_prediction)
-        if disease_data:
+        d = SYMPTOM_DB.get(image_prediction)
+        if d:
             reply_parts.append(
-                f"🖼 Disease Detected: {disease_data.get('name', image_prediction)}\n\n"
-                f"🌿 Symptoms: {disease_data.get('symptoms', 'Not available')}\n\n"
-                f"🧬 Cause: {disease_data.get('cause', 'Not available')}\n\n"
-                f"💊 Treatment: {disease_data.get('treatment', 'Not available')}\n\n"
-                f"🛡 Prevention: {disease_data.get('prevention', 'Not available')}"
+                f"🖼 Disease Detected: {d.get('name', image_prediction)}\n"
+                f"🌿 Symptoms: {d.get('symptoms')}\n"
+                f"🧬 Cause: {d.get('cause')}\n"
+                f"💊 Treatment: {d.get('treatment')}\n"
+                f"🛡 Prevention: {d.get('prevention')}"
             )
         else:
-            reply_parts.append(
-                f"🖼 Disease Detected: {image_prediction}\n"
-                "No disease information available."
-            )
+            reply_parts.append(f"🖼 Disease Detected: {image_prediction}")
 
-    # NO INPUT
     else:
-        reply_parts.append("I couldn't understand. Please type symptoms or upload a plant leaf image.")
+        reply_parts.append("Please type symptoms or upload a plant leaf image.")
 
-    
-    # 3️⃣ COMBINE REPLY IN ENGLISH
-    
-    final_reply_en = "\n\n".join(reply_parts)
+    final_en = "\n\n".join(reply_parts)
 
-    
-    # 4️⃣ TRANSLATE BOT RESPONSE BACK TO USER'S SELECTED LANGUAGE
-    
     try:
-        # Use the explicitly provided user_lang code for the destination
-        final_reply_translated = translator.translate(final_reply_en, dest=user_lang).text
-    except Exception as e:
-        print(f"Translation error: {e}")
-        final_reply_translated = final_reply_en
+        final_translated = translator.translate(final_en, dest=user_lang).text
+    except:
+        final_translated = final_en
 
-    return jsonify({"reply": final_reply_translated})
+    return jsonify({"reply": final_translated})
 
+# ================== LOGIN ==================
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        session["user"] = request.form["username"]
+        session["role"] = request.form.get("role", "farmer")
+        return redirect("/admin" if session["role"] == "admin" else "/dashboard")
+    return render_template("login.html")
 
-# DASHBOARD
+# ================== DASHBOARD ==================
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
@@ -168,6 +157,7 @@ def dashboard():
 
     uploaded_image = None
     result = None
+    error = None
 
     if request.method == "POST" and "file" in request.files:
         file = request.files["file"]
@@ -176,50 +166,72 @@ def dashboard():
             file.save(filepath)
             uploaded_image = file.filename
 
-            pred = predict_image(filepath)
+            if model:
+                result = predict_image(filepath)
+            else:
+                error = "Model not loaded"
 
             if request.headers.get("X-Chat-Image") == "true":
-                return jsonify({"prediction": pred})
-
-    if request.method == "GET":
-        session["chat"] = []
+                return jsonify({"prediction": result})
 
     return render_template(
         "dashboard.html",
-        user=session["user"],
-        chat=session.get("chat", []),
         uploaded_image=uploaded_image,
-        result=result
+        result=result,
+        error=error
     )
 
-# LOGIN, HOME, LOGOUT
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+# ================== ADMIN PANEL ==================
+@app.route("/admin")
+def admin_panel():
+    if session.get("role") != "admin":
+        return redirect("/login")
 
-        if not username or not password:
-            error = "Enter both username & password!"
-        else:
-            session["user"] = username
-            session["chat"] = []
-            return redirect("/dashboard")
+    conn = get_db_connection()
+    diseases = conn.execute("SELECT * FROM diseases").fetchall()
+    conn.close()
+    return render_template("admin_panel.html", diseases=diseases)
 
-    return render_template("login.html", error=error)
+@app.route("/add_disease", methods=["POST"])
+def add_disease():
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO diseases (disease, symptoms, prevention) VALUES (?, ?, ?)",
+        (request.form["disease"], request.form["symptoms"], request.form["prevention"])
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/admin")
 
+@app.route("/update_disease/<int:id>", methods=["POST"])
+def update_disease(id):
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE diseases SET disease=?, symptoms=?, prevention=? WHERE id=?",
+        (request.form["disease"], request.form["symptoms"], request.form["prevention"], id)
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/admin")
 
+@app.route("/delete_disease/<int:id>")
+def delete_disease(id):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM diseases WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+    return redirect("/admin")
+
+# ================== HOME & LOGOUT ==================
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
-
+# ================== RUN ==================
 if __name__ == "__main__":
     app.run(debug=True)
