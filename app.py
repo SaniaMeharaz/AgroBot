@@ -73,6 +73,7 @@ def chatbot():
 
     user_msg = (data.get("message") or "").strip()
     image_prediction = data.get("image_prediction")
+    image_url = data.get("image_url")
     user_lang = data.get("language", "en")
 
     reply_parts = []
@@ -107,10 +108,23 @@ def chatbot():
         for r in results:
             for symptom, info in r.items():
                 reply_parts.append(
-                    f"🌿 Symptom: {symptom}\n"
-                    f"🦠 Diseases: {', '.join(info.get('diseases', []))}\n"
-                    f"🧬 Cause: {info.get('cause')}\n"
-                    f"💊 Treatment: {info.get('treatment')}\n"
+                    f"🌿 Symptom: {symptom}\n\n"
+                    f"🦠 Diseases: {', '.join(info.get('diseases', []))}\n\n"
+                    f"🧬 Cause: {info.get('cause')}\n\n"
+                    f"💊 Treatment: {info.get('treatment')}\n\n"
+                    f"🛡 Prevention: {info.get('prevention')}"
+                )
+
+    # ===== ONLY TEXT =====
+    elif user_msg_en:
+        results = check_symptom(user_msg_en)
+        for r in results:
+            for symptom, info in r.items():
+                reply_parts.append(
+                    f"🌿 Symptom: {symptom}\n\n"
+                    f"🦠 Diseases: {', '.join(info.get('diseases', []))}\n\n"
+                    f"🧬 Cause: {info.get('cause')}\n\n"
+                    f"💊 Treatment: {info.get('treatment')}\n\n"
                     f"🛡 Prevention: {info.get('prevention')}"
                 )
 
@@ -119,10 +133,10 @@ def chatbot():
         d = SYMPTOM_DB.get(image_prediction)
         if d:
             reply_parts.append(
-                f"🖼 Disease Detected: {d.get('name', image_prediction)}\n"
-                f"🌿 Symptoms: {d.get('symptoms')}\n"
-                f"🧬 Cause: {d.get('cause')}\n"
-                f"💊 Treatment: {d.get('treatment')}\n"
+                f"🖼 Disease Detected: {d.get('name', image_prediction)}\n\n"
+                f"🌿 Symptoms: {d.get('symptoms')}\n\n"
+                f"🧬 Cause: {d.get('cause')}\n\n"
+                f"💊 Treatment: {d.get('treatment')}\n\n"
                 f"🛡 Prevention: {d.get('prevention')}"
             )
         else:
@@ -138,7 +152,7 @@ def chatbot():
     except:
         final_translated = final_en
 
-    return jsonify({"reply": final_translated})
+    return jsonify({"reply": final_translated,})
 
 # ================== LOGIN ==================
 @app.route("/login", methods=["GET", "POST"])
@@ -162,15 +176,19 @@ def dashboard():
     if request.method == "POST" and "file" in request.files:
         file = request.files["file"]
         if file.filename:
-            filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+            # Save uploaded file to existing static/uploads
+            filename = file.filename.replace(" ", "_")
+            filepath = os.path.join("static/uploads", filename)
             file.save(filepath)
-            uploaded_image = file.filename
+            uploaded_image = filename  # pass this to template
 
+            # Optional: predict if model exists
             if model:
                 result = predict_image(filepath)
             else:
                 error = "Model not loaded"
 
+            # If coming from chat image button, return JSON
             if request.headers.get("X-Chat-Image") == "true":
                 return jsonify({"prediction": result})
 
@@ -180,6 +198,7 @@ def dashboard():
         result=result,
         error=error
     )
+
 
 # ================== ADMIN PANEL ==================
 @app.route("/admin")
