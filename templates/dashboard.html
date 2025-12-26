@@ -1,159 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AgroBot Dashboard</title>
+<meta charset="UTF-8">
+<title>AgroBot Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
+.header { background:#224a2b; padding:20px; color:white; font-size:24px; text-align:center; position:relative; }
+.logout { position:absolute; right:20px; top:20px; background:#649e86; padding:8px 12px; border-radius:6px; text-decoration:none; color:#fff; font-weight:bold; }
+.main-container { display:flex; justify-content:center; padding:20px; }
+.box { width:60%; background:white; padding:20px; border-radius:10px; box-shadow:0 0 12px rgba(0,0,0,0.1); }
+.header-content { display:flex; justify-content:space-between; align-items:center; margin:0; padding:15px; background:#0d4d2c; color:white; border-radius:10px 10px 0 0; }
+.box h2 { margin:0; padding:0; color:white; font-weight:bold; font-size:24px; }
+.language-selector { width:150px; padding:5px; border-radius:5px; border:1px solid #ccc; color:#333; }
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f5f5f5;
-        }
-        .header {
-            background: #224a2b;
-            padding: 20px;
-            color: white;
-            font-size: 24px;
-            text-align: center;
-            position: relative;
-        }
-        .logout {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            background: rgb(100, 158, 134);
-            padding: 8px 12px;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #fff;
-            font-weight: bold;
-        }
+.chat-container { display:flex; flex-direction:column; height:550px; }
+.chat-box { flex-grow:1; overflow-y:auto; border:1px solid #ccc; padding:10px; border-radius:6px; background:#fefefe; }
+.chat-input-form { display:flex; width:100%; margin-top:10px; }
+.chat-input { flex-grow:1; padding:10px; border-radius:20px; border:1px solid #ccc; margin-right:10px; outline:none; font-size:16px; }
+.chat-send-button, .chat-image-button { width:45px; height:45px; color:white; border:none; border-radius:50%; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:22px; box-shadow:0 2px 5px rgba(0,0,0,0.2); }
+.chat-image-button { background:#1d6f45; margin-right:10px; }
+.chat-send-button { background:#0d4d2c; font-size:20px; font-weight:bold; }
+.chat-image-button i { color:white; }
 
-        .main-container {
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-        .box {
-            width: 60%;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.1);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0;
-            padding: 15px;
-            background: #0d4d2c;
-            color: white;
-            border-radius: 10px 10px 0 0;
-        }
-
-        .box h2 {
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            color: white;
-            text-align: left;
-            font-weight: bold;
-            font-size: 24px;
-        }
-
-        .language-selector {
-            width: 150px;
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            color: #333;
-        }
-
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 550px;
-        }
-        .chat-box {
-            flex-grow: 1;
-            overflow-y: auto;
-            border: 1px solid #cccccc;
-            padding: 0;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
-        .chat-input-form {
-            display: flex;
-            width: 100%;
-        }
-
-        .chat-input {
-            flex-grow: 1;
-            padding: 10px;
-            border-radius: 20px;
-            border: 1px solid #ccc;
-            margin-right: 10px;
-            outline: none;
-            font-size: 16px;
-        }
-
-        .chat-send-button,
-        .chat-image-button {
-            width: 45px;
-            height: 45px;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 22px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .chat-image-button {
-            background: #1d6f45;
-            margin-right: 10px;
-        }
-
-        .chat-send-button {
-            background: #0d4d2c;
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .chat-image-button i {
-            color: white;
-        }
-
-        .user-msg {
-            background: #d1e7ff;
-            padding: 8px 12px;
-            border-radius: 18px 18px 2px 18px;
-            margin: 8px 0;
-            margin-left: auto;
-            max-width: 80%;
-            margin-right: 10px;
-        }
-        .bot-msg {
-            background: #e7ffe7;
-            padding: 8px 12px;
-            border-radius: 18px 18px 18px 2px;
-            margin: 8px 0;
-            margin-right: auto;
-            max-width: 80%;
-            white-space: pre-wrap;
-            margin-left: 10px;
-        }
-    </style>
+.user-msg { background:#d1e7ff; padding:8px 12px; border-radius:18px 18px 2px 18px; margin:8px 0; margin-left:auto; max-width:80%; margin-right:10px; border-left:8px solid #4a4e82; word-wrap:break-word; }
+.bot-msg { background:#e7ffe7; padding:8px 12px; border-radius:18px 18px 18px 2px; margin:8px 0; margin-right:auto; max-width:80%; margin-left:10px; white-space:pre-wrap; border-left:8px solid #2e7d32; word-wrap:break-word; }
+.bot-msg img { max-width:200px; border-radius:8px; display:block; margin-top:5px; }
+.uploaded-img { max-width:250px; height:auto; border:1px solid #ccc; border-radius:8px; margin-bottom:10px; }
+</style>
 </head>
 
 <body>
@@ -166,37 +41,35 @@
 <div class="main-container">
     <div class="box">
 
+        {% if uploaded_image %}
+            <h3>Uploaded Image:</h3>
+            <img src="{{ url_for('static', filename='uploads/' ~ uploaded_image) }}" class="uploaded-img"/>
+        {% endif %}
+
         <div class="header-content">
             <h2>🤖 AgroBot</h2>
-
-            <select id="languageSelector" class="language-selector" onchange="changeLanguage(this.value)">
-            </select>
+            <select id="languageSelector" class="language-selector" onchange="changeLanguage(this.value)"></select>
         </div>
 
         <div class="chat-container">
-
             <div class="chat-box" id="chatBox">
-                <p class="bot-msg" id="greetingMsg">Hello! I'm your smart agricultural assistant, here to help you diagnose plant problems,understand symptoms, and get the best solutions for keeping your crops healthy.How can I support you today?</p>
+                <p class="bot-msg" id="greetingMsg">Hello! I'm your smart agricultural assistant, here to help you diagnose plant problems, understand symptoms, and get the best solutions for keeping your crops healthy. How can I support you today?</p>
             </div>
 
             <form id="chatForm" class="chat-input-form" onsubmit="event.preventDefault(); sendChat()">
                 <input id="userMessage" class="chat-input" type="text" placeholder="Ask AgroBot...">
-
                 <label class="chat-image-button">
                     <i class="fa-solid fa-paperclip"></i>
                     <input type="file" id="chatImage" accept="image/*" style="display:none" onchange="sendImage()">
                 </label>
-
                 <div class="chat-send-button" onclick="sendChat()">></div>
             </form>
-
         </div>
     </div>
 </div>
 
 <script>
-
-// AVAILABLE LANGUAGES
+// Languages
 const LANGUAGES = [
     { code: "en", name: "English" },
     { code: "hi", name: "Hindi (हिंदी)" },
@@ -221,10 +94,11 @@ const LANGUAGES = [
     { code: "mni", name: "Meitei (ꯃꯤꯇꯩ)" },
     { code: "ar", name: "Arabic (العربية)" },
     { code: "brx", name: "Bodo (बर')" },
-    { code: "sa", name: "Sanskrit (संस्कृतम्)" }
+    { code: "sa", name: "Sanskrit (संस्कृतम्)" },
+    { code: "lus", name: "Mizo (Mizo ṭawng)" }
+    // Add more as needed
 ];
 
-// TRANSLATED GREETINGS
 const TRANSLATIONS = {
     en: "Hello! I'm your smart agricultural assistant, here to help you diagnose plant problems, understand symptoms, and get the best solutions for keeping your crops healthy. How can I support you today?",
 
@@ -273,117 +147,114 @@ const TRANSLATIONS = {
     brx: "जहर! आं जों नोंथांखौ फदांनोथि गोआनि स्मार्ट फासल सहायक।",
 
     sa: "नमस्कार! अहं भवतः स्मार्ट कृषि-सहायकः अस्मि। कथं भवतः सहायां करॊमि?"
+
 };
 
-
-// POPULATE DROPDOWN
+// Populate dropdown
 document.addEventListener("DOMContentLoaded", () => {
     const selector = document.getElementById("languageSelector");
-
     LANGUAGES.forEach(lang => {
         const option = document.createElement("option");
         option.value = lang.code;
         option.textContent = lang.name;
-
-        if (lang.code === "en") option.selected = true;
-
+        if(lang.code==="en") option.selected=true;
         selector.appendChild(option);
     });
 });
 
-
-// CHANGE GREETING ON LANGUAGE SWITCH
+// Change greeting language
 function changeLanguage(selectedLang) {
-    document.getElementById("chatBox").innerHTML =
-        `<p class="bot-msg">${TRANSLATIONS[selectedLang]}</p>`;
+    document.getElementById("chatBox").innerHTML = `<p class="bot-msg">${TRANSLATIONS[selectedLang]}</p>`;
 }
 
+// Send chat
+async function sendChat(){
+    const input=document.getElementById("userMessage");
+    const msg=input.value.trim();
+    if(!msg) return;
 
+    appendChat(msg,null);
+    input.value="";
 
-// CHAT SEND FUNCTION
-async function sendChat() {
-    const input = document.getElementById("userMessage");
-    const msg = input.value.trim();
-    if (!msg) return;
+    appendChat(null,"...");
 
-    appendChat(msg, null);
-    input.value = "";
-
-    const thinking = document.createElement("p");
-    thinking.className = "bot-msg";
-    thinking.id = "thinking";
-    thinking.innerHTML = "...";
-    document.getElementById("chatBox").appendChild(thinking);
-
-    const lang = document.getElementById("languageSelector").value;
-
-    const response = await fetch("/chatbot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, language: lang })
+    const res=await fetch("/chatbot",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            message:msg,
+            language:document.getElementById("languageSelector").value
+        })
     });
 
-    const data = await response.json();
-    document.getElementById("thinking").remove();
-
-    appendChat(null, data.reply);
+    const data=await res.json();
+    document.querySelector(".bot-msg:last-child").remove();
+    appendChat(null,data.reply);
 }
 
-
-
-// IMAGE SEND FUNCTION
+// Send image
+// Updated Send image function
 async function sendImage() {
     const file = document.getElementById("chatImage").files[0];
-    if (!file) return;
+    if(!file) return;
 
-    appendChat("[Image Uploaded]", null);
+    // Show user's upload in chat
+    appendChat(`<img src="${URL.createObjectURL(file)}" style="max-width:200px; border-radius:10px;">`, null);
 
-    const proc = document.createElement("p");
-    proc.className = "bot-msg";
-    proc.id = "processing";
-    proc.innerHTML = "...";
+    const proc = document.createElement("p"); 
+    proc.className = "bot-msg"; proc.id = "processing"; proc.innerHTML = "...";
     document.getElementById("chatBox").appendChild(proc);
 
-    let formData = new FormData();
+    let formData = new FormData(); 
     formData.append("file", file);
 
-    const imgRes = await fetch("/dashboard", {
-        method: "POST",
-        body: formData,
-        headers: { "X-Chat-Image": "true" }
-    });
-
+    // 1. Upload and get prediction + filename
+    const imgRes = await fetch("/dashboard", { method:"POST", body:formData, headers:{"X-Chat-Image":"true"} });
     const imgData = await imgRes.json();
     document.getElementById("processing").remove();
 
     const lang = document.getElementById("languageSelector").value;
 
+    // 2. Send prediction and filename to chatbot
     const res = await fetch("/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_prediction: imgData.prediction, language: lang })
+        body: JSON.stringify({ 
+            image_prediction: imgData.prediction, 
+            image_url: imgData.filename, // Pass filename back
+            language: lang 
+        })
     });
 
     const final = await res.json();
-    appendChat(null, final.reply);
+    // 3. Append bot reply with the image filename
+    appendChat(null, final.reply, final.image_url);
 }
 
-
-// APPEND TO CHAT BOX
-function appendChat(user, bot) {
+// Updated Append messages function
+function appendChat(user, bot, botImage = null) {
     let box = document.getElementById("chatBox");
-
-    if (user) {
-        box.innerHTML += `<p class="user-msg">${user}</p>`;
+    
+    if(user) {
+        box.innerHTML += `<div class="user-msg">${user}</div>`;
     }
-    if (bot) {
-        box.innerHTML += `<p class="bot-msg">${bot.replace(/\n/g, "<br>")}</p>`;
+    
+    if(bot) {
+        let botHtml = `<div class="bot-msg">`;
+        // If the bot response includes an image filename, add the <img> tag first
+        if(botImage) {
+            botHtml += `<img src="/static/uploads/${botImage}" style="max-width:100%; border-radius:8px; margin-bottom:10px; border:1px solid #ddd;">`;
+        }
+        botHtml += `${bot.replace(/\n/g, "<br>")}</div>`;
+        box.innerHTML += botHtml;
     }
-
+    
     box.scrollTop = box.scrollHeight;
 }
+
+// Also update sendChat to match the new 3-parameter signature
 
 </script>
 
 </body>
-</html>
+</html> 
